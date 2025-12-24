@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@source inline("border-border bg-background text-foreground bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors font-medium bg-gray-200 text-gray-800 bg-white rounded-xl shadow-md p-6 w-full border border-gray-300 ring-2 ring-blue-500 border-blue-500");
+@source inline("bg-blue-600");
+@source inline("bg-blue-700");
+@source inline("bg-gray-200");
+@source inline("bg-gray-300");
+@source inline("text-white");
+@source inline("text-gray-800");
+@source inline("border");
+@source inline("border-gray-300");
+@source inline("rounded-lg");
+@source inline("transition-colors");
+@source inline("{hover:,}bg-blue-700");
+@source inline("{hover:,}bg-gray-300");
+@source inline("{focus:,}ring-2");
+@source inline("{focus:,}ring-blue-500");
+@source inline("{focus:,}border-blue-500");
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-md p-6;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+}
