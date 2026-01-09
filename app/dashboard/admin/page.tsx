@@ -26,18 +26,18 @@ export default function AdminDashboard() {
     }
   }, [authLoading, role, router, user])
 
-  if (authLoading || (user && !role)) {
+  if (authLoading || !user || !role) {
     return (
-      <DashboardLayout role="student">
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
-      </DashboardLayout>
+      </div>
     )
   }
 
-  if (!user || role !== 'admin') return null
+  if (role !== 'admin') return null
 
   return (
     <DashboardLayout role="admin">

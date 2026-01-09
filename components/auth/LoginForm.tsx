@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth'
 import { getFirebaseConfigErrorMessage, tryGetFirebaseAuth } from '@/lib/firebase/config'
 import SocialLogin from './SocialLogin'
 import { useRouter } from 'next/navigation'
+import { getUserProfile } from '@/lib/firebase/firestore'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -25,10 +26,20 @@ export default function LoginForm() {
         return
       }
 
-      await signInWithEmailAndPassword(auth, email, password)
-
-      // Navigate immediately; AuthProvider will load the profile/role.
-      router.push('/dashboard/student')
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      
+      // Get user profile to determine role
+      const profile = await getUserProfile(userCredential.user.uid)
+      const role = profile?.role || 'student'
+      
+      // Navigate based on role
+      if (role === 'admin') {
+        router.push('/dashboard/admin')
+      } else if (role === 'staff') {
+        router.push('/dashboard/staff')
+      } else {
+        router.push('/dashboard/student')
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.')
     } finally {

@@ -47,8 +47,14 @@ export default function StudentDashboard() {
       return
     }
     if (!role) return
-    if (role === 'admin') router.push('/dashboard/admin')
-    if (role === 'staff') router.push('/dashboard/staff')
+    if (role === 'admin') {
+      router.push('/dashboard/admin')
+      return
+    }
+    if (role === 'staff') {
+      router.push('/dashboard/staff')
+      return
+    }
   }, [authLoading, role, router, user])
 
   useEffect(() => {
