@@ -6,15 +6,21 @@ import { useUsers } from '@/lib/hooks/useUsers'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatDate } from '@/lib/utils/helpers'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { tryGetFirebaseAuth } from '@/lib/firebase/config'
 
 export default function UserDetailPage() {
   const params = useParams()
   const userId = params.id as string
-  const { fetchUserById } = useUsers()
+  const { fetchUserById, editUser } = useUsers()
   const { user: currentUser, role, loading: authLoading } = useAuth()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -76,6 +82,51 @@ export default function UserDetailPage() {
     )
   }
 
+  const handleResetPassword = async () => {
+    if (!user?.email) return
+    setActionError(null)
+    setActionSuccess(null)
+    setActionLoading(true)
+
+    try {
+      const auth = tryGetFirebaseAuth()
+      if (!auth) throw new Error('Firebase auth is not configured.')
+      await sendPasswordResetEmail(auth, user.email)
+      setActionSuccess('Password reset email sent.')
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to send password reset email.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleSuspendToggle = async () => {
+    if (!user?.id) return
+    setActionError(null)
+    setActionSuccess(null)
+    setActionLoading(true)
+
+    try {
+      const nextBanned = !user.banned
+      await editUser(user.id, {
+        banned: nextBanned,
+        bannedAt: nextBanned ? new Date() : null,
+        banReason: nextBanned ? 'Suspended by admin' : null,
+      })
+      setUser({
+        ...user,
+        banned: nextBanned,
+        bannedAt: nextBanned ? new Date() : null,
+        banReason: nextBanned ? 'Suspended by admin' : null,
+      })
+      setActionSuccess(nextBanned ? 'User suspended.' : 'User unsuspended.')
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to update user status.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   return (
     <DashboardLayout role="admin">
       <div className="max-w-4xl mx-auto">
@@ -100,12 +151,18 @@ export default function UserDetailPage() {
                   <p className="font-medium">{user.role}</p>
                 </div>
                 <div>
+                  <h4 className="text-sm text-gray-500">Status</h4>
+                  <p className={`font-medium ${user.banned ? 'text-red-600' : 'text-green-600'}`}>
+                    {user.banned ? 'Suspended' : 'Active'}
+                  </p>
+                </div>
+                <div>
                   <h4 className="text-sm text-gray-500">Member Since</h4>
-                  <p className="font-medium">{user.createdAt || 'Not specified'}</p>
+                  <p className="font-medium">{user.createdAt ? formatDate(user.createdAt) : 'Not specified'}</p>
                 </div>
                 <div>
                   <h4 className="text-sm text-gray-500">Last Login</h4>
-                  <p className="font-medium">{user.lastLoginAt || 'Not specified'}</p>
+                  <p className="font-medium">{user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Not specified'}</p>
                 </div>
                 <div>
                   <h4 className="text-sm text-gray-500">Fine Amount</h4>
@@ -129,10 +186,29 @@ export default function UserDetailPage() {
                 )}
               </div>
 
+              {actionError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+                  {actionError}
+                </div>
+              )}
+              {actionSuccess && (
+                <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                  {actionSuccess}
+                </div>
+              )}
+
               <div className="flex space-x-4">
-                <button className="btn-primary">Edit User</button>
-                <button className="btn-secondary">Reset Password</button>
-                <button className="btn-secondary text-red-600 border-red-200">Suspend User</button>
+                <a href={`/users/${userId}/edit`} className="btn-primary">Edit User</a>
+                <button className="btn-secondary" onClick={handleResetPassword} disabled={actionLoading}>
+                  {actionLoading ? 'Working…' : 'Reset Password'}
+                </button>
+                <button
+                  className={`btn-secondary ${user.banned ? 'text-green-600 border-green-200' : 'text-red-600 border-red-200'}`}
+                  onClick={handleSuspendToggle}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Working…' : user.banned ? 'Unsuspend User' : 'Suspend User'}
+                </button>
               </div>
             </div>
           </div>

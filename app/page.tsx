@@ -1,7 +1,9 @@
 import LoginForm from '@/components/auth/LoginForm'
 import Card, { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
+
 import Footer from '@/components/layout/Footer'
-import { BookOpenIcon } from '@heroicons/react/24/outline'
+
+
 
 export default function Home() {
   return (
@@ -9,7 +11,6 @@ export default function Home() {
       <header className="sticky top-0 z-10 border-b bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <BookOpenIcon className="h-6 w-6 text-blue-600" />
             <span>Library Management System</span>
           </a>
           <nav className="flex items-center gap-3">

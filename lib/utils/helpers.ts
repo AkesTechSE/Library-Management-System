@@ -4,6 +4,9 @@ export const formatDate = (date: any): string => {
   if (date.toDate) {
     date = date.toDate()
   }
+  if (date?.seconds && typeof date.seconds === 'number') {
+    date = new Date(date.seconds * 1000)
+  }
   
   return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',

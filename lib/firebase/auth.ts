@@ -1,42 +1,73 @@
-import { 
+// lib/firebase/auth.ts - SIMPLE VERSION
+import { auth } from "./config";
+import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
   updateProfile,
-  UserCredential
-} from "firebase/auth"
-import { getFirebaseConfigErrorMessage, tryGetFirebaseAuth } from "./config"
+} from "firebase/auth";
 
-export const loginWithEmail = (email: string, password: string): Promise<UserCredential> => {
-  const auth = tryGetFirebaseAuth()
-  if (!auth) return Promise.reject(new Error(getFirebaseConfigErrorMessage()))
-  return signInWithEmailAndPassword(auth, email, password)
-}
+// Simple login function
+export const loginWithEmail = async (email: string, password: string) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return {
+      success: true,
+      user: userCredential.user
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+};
 
-export const registerWithEmail = async (
-  email: string, 
-  password: string, 
-  displayName: string
-): Promise<UserCredential> => {
-  const auth = tryGetFirebaseAuth()
-  if (!auth) throw new Error(getFirebaseConfigErrorMessage())
+// Simple register function
+export const registerWithEmail = async (email: string, password: string, displayName: string) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName });
+    return {
+      success: true,
+      user: userCredential.user
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+};
 
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-  await updateProfile(userCredential.user, { displayName })
-  return userCredential
-}
+// Simple Google login
+export const loginWithGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    return {
+      success: true,
+      user: userCredential.user
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+};
 
-export const loginWithGoogle = (): Promise<UserCredential> => {
-  const auth = tryGetFirebaseAuth()
-  if (!auth) return Promise.reject(new Error(getFirebaseConfigErrorMessage()))
-  const provider = new GoogleAuthProvider()
-  return signInWithPopup(auth, provider)
-}
-
-export const logout = (): Promise<void> => {
-  const auth = tryGetFirebaseAuth()
-  if (!auth) return Promise.resolve()
-  return signOut(auth)
-}
+// Simple logout
+export const logout = async () => {
+  try {
+    await signOut(auth);
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+};

@@ -2,13 +2,21 @@
 
 import { useState } from 'react'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
-import { getFirebaseConfigErrorMessage, tryGetFirebaseAuth } from '@/lib/firebase/config'
+import { getFirebaseConfigErrorMessage, tryGetFirebaseAuth, tryGetFirebaseDb } from '@/lib/firebase/config'
+import { doc, getDoc } from 'firebase/firestore'
+import Cookies from 'js-cookie'
+import type { UserRole } from '@/lib/firebase/firestore'
 import { useRouter } from 'next/navigation'
 
 export default function SocialLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  const persistRole = (uid: string, role: UserRole) => {
+    sessionStorage.setItem(`userRole:${uid}`, role)
+    Cookies.set('userRole', role, { sameSite: 'lax' })
+  }
 
   const handleGoogleLogin = async () => {
     setError('')
@@ -22,10 +30,28 @@ export default function SocialLogin() {
       }
 
       const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      const credential = await signInWithPopup(auth, provider)
+      const user = credential.user
 
-      // Navigate immediately; AuthProvider will load the profile/role.
-      router.push('/dashboard/student')
+      const db = tryGetFirebaseDb()
+      if (db && user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        const userData = userDoc.data()
+        const role = (userData?.role as UserRole) ?? 'student'
+        persistRole(user.uid, role)
+        if (role === 'admin') {
+          router.push('/dashboard/admin')
+        } else if (role === 'staff') {
+          router.push('/dashboard/staff')
+        } else {
+          router.push('/dashboard/student')
+        }
+      } else {
+        if (user) {
+          persistRole(user.uid, 'student')
+        }
+        router.push('/dashboard/student')
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to login with Google')
     } finally {

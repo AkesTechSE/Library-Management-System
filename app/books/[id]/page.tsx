@@ -159,9 +159,27 @@ export default function BookDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Book Cover */}
             <div>
-              <div className="bg-gray-100 rounded-lg aspect-[3/4] flex items-center justify-center mb-4">
-                <span className="text-6xl">📚</span>
+              <div className="bg-gray-100 rounded-lg aspect-[3/4] flex items-center justify-center mb-4 overflow-hidden">
+                {book.coverUrl ? (
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title || 'Book Cover'}
+                    className="object-cover w-full h-full rounded-lg"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <span className="text-6xl">📚</span>
+                )}
               </div>
+              {/* Read PDF Button: Only show for admin/staff, or for students who have borrowed this book */}
+              {book.pdfUrl && (isAdminOrStaff || hasThisBookBorrowed) && (
+                <a
+                  href={`/books/${book.id}/read`}
+                  className="w-full btn-primary py-2 mb-3 block text-center"
+                >
+                  Read Online
+                </a>
+              )}
               {!isAdminOrStaff && (
                 <div className="space-y-3">
                   {actionError && (
@@ -170,7 +188,27 @@ export default function BookDetailPage() {
                     </div>
                   )}
 
-                  {hasThisBookBorrowed ? (
+                  {!hasThisBookBorrowed ? (
+                    <>
+                      <button
+                        onClick={handleBorrow}
+                        disabled={actionLoading || !canBorrowThisBook}
+                        className="w-full btn-primary py-3"
+                      >
+                        {actionLoading ? 'Starting…' : 'Borrow & Read'}
+                      </button>
+                      {hasActiveBorrow && activeBorrow?.bookId !== bookId && (
+                        <div className="text-sm text-gray-600">
+                          You already have a borrowed book. Return it before borrowing another.
+                        </div>
+                      )}
+                      {!hasActiveBorrow && status !== 'available' && (
+                        <div className="text-sm text-red-600 font-semibold">
+                          Not available: This book is currently borrowed by another user.
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     <>
                       <button
                         onClick={handleReturn}
@@ -183,35 +221,31 @@ export default function BookDetailPage() {
                         Due: <span className="font-medium">{formatDate((activeBorrow as any)?.dueAt)}</span>
                       </div>
                     </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleBorrow}
-                        disabled={actionLoading || !canBorrowThisBook}
-                        className="w-full btn-primary py-3"
-                      >
-                        {actionLoading ? 'Starting…' : 'Read Online'}
-                      </button>
-                      {hasActiveBorrow && activeBorrow?.bookId !== bookId && (
-                        <div className="text-sm text-gray-600">
-                          You already have a borrowed book. Return it before borrowing another.
-                        </div>
-                      )}
-                      {!hasActiveBorrow && status !== 'available' && (
-                        <div className="text-sm text-gray-600">
-                          This book is not currently available.
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               )}
               {isAdminOrStaff && (
                 <div className="space-y-2">
-                  <button className="w-full btn-secondary py-2">
+                  <button
+                    className="w-full btn-secondary py-2"
+                    onClick={() => router.push(`/books/${book.id}/edit`)}
+                  >
                     Edit Book
                   </button>
-                  <button className="w-full btn-secondary py-2 text-red-600 border-red-200">
+                  <button
+                    className="w-full btn-secondary py-2 text-red-600 border-red-200"
+                    onClick={async () => {
+                      if (!window.confirm('Are you sure you want to delete this book?')) return;
+                      try {
+                        const { deleteBook } = await import('@/lib/firebase/firestore');
+                        await deleteBook(book.id);
+                        alert('Book deleted successfully.');
+                        router.push('/books');
+                      } catch (err: any) {
+                        alert(err.message || 'Failed to delete book.');
+                      }
+                    }}
+                  >
                     Delete Book
                   </button>
                 </div>
@@ -253,6 +287,10 @@ export default function BookDetailPage() {
                 <div>
                   <h4 className="text-sm text-gray-500">Total Copies</h4>
                   <p className="font-medium">{book.totalCopies || 1}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm text-gray-500">Available Copies</h4>
+                  <p className="font-medium">{book.availableCopies ?? book.totalCopies ?? 1}</p>
                 </div>
               </div>
             </div>

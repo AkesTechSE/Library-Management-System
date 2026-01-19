@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getBooks, getBookById, addBook, updateBook, deleteBook } from '@/lib/firebase/firestore'
 
 let booksCache: any[] | null = null
@@ -13,7 +13,7 @@ export const useBooks = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBooks = async (options?: { force?: boolean }) => {
+  const fetchBooks = useCallback(async (options?: { force?: boolean }) => {
     const force = options?.force ?? false
 
     try {
@@ -30,7 +30,8 @@ export const useBooks = () => {
         booksInFlight = getBooks()
       }
 
-      if (!booksCache) {
+      const hasLocalBooks = (booksCache && booksCache.length > 0) || books.length > 0
+      if (!booksCache && !hasLocalBooks) {
         setLoading(true)
       }
 
@@ -44,18 +45,18 @@ export const useBooks = () => {
       booksInFlight = null
       setLoading(false)
     }
-  }
+  }, [books])
 
-  const fetchBookById = async (id: string) => {
+  const fetchBookById = useCallback(async (id: string) => {
     try {
       return await getBookById(id)
     } catch (err: any) {
       setError(err.message)
       return null
     }
-  }
+  }, [])
 
-  const createBook = async (bookData: any) => {
+  const createBook = useCallback(async (bookData: any) => {
     try {
       const id = await addBook(bookData)
       booksCache = null
@@ -66,9 +67,9 @@ export const useBooks = () => {
       setError(err.message)
       throw err
     }
-  }
+  }, [fetchBooks])
 
-  const editBook = async (id: string, bookData: any) => {
+  const editBook = useCallback(async (id: string, bookData: any) => {
     try {
       await updateBook(id, bookData)
       booksCache = null
@@ -78,9 +79,9 @@ export const useBooks = () => {
       setError(err.message)
       throw err
     }
-  }
+  }, [fetchBooks])
 
-  const removeBook = async (id: string) => {
+  const removeBook = useCallback(async (id: string) => {
     try {
       await deleteBook(id)
       booksCache = null
@@ -90,7 +91,7 @@ export const useBooks = () => {
       setError(err.message)
       throw err
     }
-  }
+  }, [fetchBooks])
 
   useEffect(() => {
     fetchBooks()

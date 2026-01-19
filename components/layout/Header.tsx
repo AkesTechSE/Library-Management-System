@@ -42,7 +42,7 @@ export default function Header({ user }: HeaderProps) {
             <span>Welcome, {user.displayName || user.email}</span>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           <div className="hidden md:flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -51,11 +51,11 @@ export default function Header({ user }: HeaderProps) {
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium">{user.displayName || 'User'}</p>
+              <p className="text-sm font-medium text-gray-800">{user.displayName || 'User'}</p>
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
           </div>
-          
+
           <button
             onClick={handleLogout}
             className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"

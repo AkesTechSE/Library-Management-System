@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, ReactNode } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { logout } from '@/lib/firebase/auth'
@@ -26,8 +27,8 @@ const navigation = {
     { name: 'Dashboard', href: '/dashboard/admin', icon: HomeIcon },
     { name: 'Books', href: '/books', icon: BookOpenIcon },
     { name: 'Users', href: '/users', icon: UserGroupIcon },
-    { name: 'Analytics', href: '#', icon: ChartBarIcon },
-    { name: 'Settings', href: '#', icon: Cog6ToothIcon },
+    { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
+    { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
   ],
   staff: [
     { name: 'Dashboard', href: '/dashboard/staff', icon: HomeIcon },
@@ -38,14 +39,17 @@ const navigation = {
   student: [
     { name: 'Dashboard', href: '/dashboard/student', icon: HomeIcon },
     { name: 'Browse Books', href: '/books', icon: BookOpenIcon },
-    { name: 'My Books', href: '#', icon: BookOpenIcon },
+    { name: 'My Books', href: '/books/my-books', icon: BookOpenIcon },
   ],
 }
 
 export default function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
+
+
 
   const dashboardHref = role === 'admin' ? '/dashboard/admin' : role === 'staff' ? '/dashboard/staff' : '/dashboard/student'
 
@@ -58,6 +62,10 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
     }
   }
 
+  useEffect(() => {
+    setPhotoError(false)
+  }, [user?.photoURL])
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
@@ -67,7 +75,7 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
           <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
             <div className="flex items-center">
               <BookOpenIcon className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">LibraFlow</span>
+             
             </div>
             <button
               type="button"
@@ -78,38 +86,20 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
             </button>
           </div>
           <nav className="flex-1 space-y-1 px-4 py-4">
-            {navigation[role].map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400" />
-                {item.name}
-              </a>
-            ))}
+            {role && navigation[role] ? (
+              navigation[role].map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+                >
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 cursor-pointer" />
+                  {item.name}
+                </Link>
+              ))
+            ) : null}
           </nav>
-          {role !== 'student' && (
-            <div className="border-t border-gray-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  {user?.photoURL ? (
-                    <img
-                      className="h-8 w-8 rounded-full"
-                      src={user.photoURL}
-                      alt={user.displayName ?? user.email ?? 'User'}
-                    />
-                  ) : (
-                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">{user?.displayName || user?.email || 'User'}</p>
-                  <p className="text-xs text-gray-500 capitalize">{role}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Profile option removed from sidebar footer as requested */}
         </div>
       </div>
 
@@ -123,44 +113,26 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
             </div>
           </div>
           <nav className="flex-1 space-y-1 px-4 py-4">
-            {navigation[role].map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400" />
-                {item.name}
-              </a>
-            ))}
+            {role && navigation[role] ? (
+              navigation[role].map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400" />
+                  {item.name}
+                </Link>
+              ))
+            ) : null}
           </nav>
-          {role !== 'student' && (
-            <div className="border-t border-gray-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  {user?.photoURL ? (
-                    <img
-                      className="h-8 w-8 rounded-full"
-                      src={user.photoURL}
-                      alt={user.displayName ?? user.email ?? 'User'}
-                    />
-                  ) : (
-                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">{user?.displayName || user?.email || 'User'}</p>
-                  <p className="text-xs text-gray-500 capitalize">{role}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Profile/user info block removed from static sidebar as requested */}
         </div>
       </div>
 
       {/* Mobile top header */}
       <div className="lg:pl-56">
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-white/10 bg-gradient-to-r from-blue-700 to-blue-800 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-white/10 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 bg-white">
           <button
             type="button"
             className="-m-2.5 p-2.5 text-white/90 hover:text-white lg:hidden"
@@ -170,38 +142,36 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
           </button>
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="flex flex-1 items-center">
-              <a href={dashboardHref} className="flex items-center gap-x-2">
-                <BookOpenIcon className="h-6 w-6 text-white" />
-                <span className="text-base font-semibold text-white">LibraFlow</span>
-              </a>
-            </div>
+            {/* Brand removed from header as requested */}
+            <div className="flex flex-1 items-center"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               <div className="hidden lg:block">
                 <div className="flex items-center gap-x-2">
                   <div className="flex-shrink-0">
-                    {user?.photoURL ? (
+                    {user?.photoURL && !photoError ? (
                       <img
                         className="h-8 w-8 rounded-full"
                         src={user.photoURL}
                         alt={user.displayName ?? user.email ?? 'User'}
+                        onError={() => setPhotoError(true)}
                       />
                     ) : (
-                      <UserCircleIcon className="h-8 w-8 text-white/70" />
+                      <UserCircleIcon className="h-8 w-8 text-black/70" />
                     )}
                   </div>
+                  {/* Always show name/email next to photo */}
                   <div>
-                    <p className="text-sm font-medium text-white">{user?.displayName || user?.email || 'User'}</p>
-                    <p className="text-xs text-white/70 capitalize">{role}</p>
+                    <p className="text-sm font-medium text-black">{user?.displayName || user?.email || 'User'}</p>
+                    <p className="text-xs text-black/70 capitalize">{role}</p>
                   </div>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-white/80 hover:text-white"
+                className="text-black/80 hover:text-black cursor-pointer"
                 title="Logout"
               >
-                <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                <ArrowRightOnRectangleIcon className="h-8 w-8 cursor-pointer" />
               </button>
             </div>
           </div>

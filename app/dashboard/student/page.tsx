@@ -6,7 +6,7 @@ import { useBooks } from '@/lib/hooks/useBooks'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { getActiveBorrowForUser, returnBook } from '@/lib/firebase/firestore'
+import { borrowBook, getActiveBorrowForUser, returnBook } from '@/lib/firebase/firestore'
 import { formatDate } from '@/lib/utils/helpers'
 
 export default function StudentDashboard() {
@@ -19,12 +19,16 @@ export default function StudentDashboard() {
   >(null)
   const [borrowedBook, setBorrowedBook] = useState<any | null>(null)
   const [borrowLoading, setBorrowLoading] = useState(false)
+  const [borrowFetchLoading, setBorrowFetchLoading] = useState(false)
   const [borrowError, setBorrowError] = useState<string | null>(null)
 
+  const activeBorrowBookId = activeBorrow?.bookId
+  const hasActiveBorrow = !!activeBorrowBookId
+
   const availableBooks = useMemo(() => {
-    const filtered = borrowedBook ? books.filter((b) => b.id !== borrowedBook.id) : books
-    return filtered.slice(0, 8)
-  }, [books, borrowedBook])
+    const filtered = activeBorrowBookId ? books.filter((b) => b.id !== activeBorrowBookId) : books
+    return filtered
+  }, [activeBorrowBookId, books])
 
   const dueDateInfo = useMemo(() => {
     const dueAt: any = (activeBorrow as any)?.dueAt
@@ -40,16 +44,7 @@ export default function StudentDashboard() {
     }
   }, [activeBorrow])
 
-  useEffect(() => {
-    if (authLoading) return
-    if (!user) {
-      router.push('/')
-      return
-    }
-    if (!role) return
-    if (role === 'admin') router.push('/dashboard/admin')
-    if (role === 'staff') router.push('/dashboard/staff')
-  }, [authLoading, role, router, user])
+  // Client-side role-based redirects removed; handled by middleware
 
   useEffect(() => {
     if (authLoading) return
@@ -59,7 +54,7 @@ export default function StudentDashboard() {
 
     const loadActiveBorrow = async () => {
       setBorrowError(null)
-      setBorrowLoading(true)
+      setBorrowFetchLoading(true)
 
       try {
         const record = await getActiveBorrowForUser(user.uid)
@@ -76,7 +71,7 @@ export default function StudentDashboard() {
         setBorrowedBook(null)
         setBorrowError(err?.message || 'Failed to load borrowed book.')
       } finally {
-        setBorrowLoading(false)
+        setBorrowFetchLoading(false)
       }
     }
 
@@ -84,12 +79,13 @@ export default function StudentDashboard() {
   }, [authLoading, fetchBookById, role, user])
 
   const handleReturn = async () => {
-    if (!user || !borrowedBook?.id) return
+    const targetBookId = borrowedBook?.id ?? activeBorrowBookId
+    if (!user || !targetBookId) return
     setBorrowError(null)
     setBorrowLoading(true)
 
     try {
-      await returnBook(user.uid, borrowedBook.id)
+      await returnBook(user.uid, targetBookId)
       setActiveBorrow(null)
       setBorrowedBook(null)
       await fetchBooks({ force: true })
@@ -100,70 +96,106 @@ export default function StudentDashboard() {
     }
   }
 
-  if (authLoading || (user && !role)) {
-    return (
-      <DashboardLayout role="student">
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      </DashboardLayout>
-    )
+  const handleBorrow = async (bookId: string) => {
+    if (!user) return
+    setBorrowError(null)
+    setBorrowLoading(true)
+
+    try {
+      await borrowBook(user.uid, bookId)
+      const record = await getActiveBorrowForUser(user.uid)
+      setActiveBorrow(record)
+      if (record?.bookId) {
+        const book = await fetchBookById(record.bookId)
+        setBorrowedBook(book)
+      }
+      await fetchBooks({ force: true })
+    } catch (err: any) {
+      setBorrowError(err?.message || 'Failed to borrow the book.')
+    } finally {
+      setBorrowLoading(false)
+    }
   }
 
-  if (!user) return null
+  const isReady = !!user && role === 'student'
 
   return (
     <DashboardLayout role="student">
       <div className="space-y-6">
+        {!isReady && (
+          <div className="card">
+            <div className="text-center py-6">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Loading your dashboard...</p>
+            </div>
+          </div>
+        )}
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Student Dashboard</h1>
           <p className="text-gray-600">Browse and read books online</p>
         </div>
 
-        {/* Borrowed Books */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Currently Borrowed</h2>
-          {borrowError && (
-            <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {borrowError}
-            </div>
-          )}
+        {isReady && borrowError && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            {borrowError}
+          </div>
+        )}
 
-          {borrowLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading borrowed book…</div>
-          ) : !borrowedBook ? (
-            <div className="text-center py-8 text-gray-500">
-              {"You haven't borrowed any books yet."}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <BookCard key={borrowedBook.id} book={borrowedBook} />
+        {isReady && borrowFetchLoading ? (
+          <div className="card">
+            <div className="text-sm text-gray-600">Loading borrowed book...</div>
+          </div>
+        ) : isReady && hasActiveBorrow ? (
+          <div className="card">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Borrowed Book</h2>
+                <p className="text-gray-700 mt-1">
+                  {borrowedBook ? (
+                    <>
+                      <span className="font-medium">{borrowedBook.title}</span> by {borrowedBook.author}
+                    </>
+                  ) : (
+                    <span className="text-gray-600">Book details are unavailable.</span>
+                  )}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Due: <span className={`font-medium ${dueDateInfo.isOverdue ? 'text-red-600' : ''}`}>
+                    {dueDateInfo.dueDate ? formatDate(dueDateInfo.dueDate) : 'N/A'}
+                  </span>
+                </p>
               </div>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="text-sm text-gray-600">
-                  Due: <span className="font-medium">{formatDate((activeBorrow as any)?.dueAt)}</span>
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href={`/books/${borrowedBook.id}`}
-                    className="btn-secondary px-4 py-2 text-center"
-                  >
-                    View Details
+              <div className="flex flex-col sm:flex-row gap-2">
+                {borrowedBook ? (
+                  <a href={`/books/${borrowedBook.id}/read`} className="btn-primary">
+                    Read Online
                   </a>
-                  <button
-                    onClick={handleReturn}
-                    disabled={borrowLoading}
-                    className="btn-primary px-4 py-2"
-                  >
-                    {borrowLoading ? 'Returning…' : 'Return'}
-                  </button>
-                </div>
+                ) : (
+                  <a href={`/books/${activeBorrowBookId}/read`} className="btn-primary">
+                    Read Online
+                  </a>
+                )}
+                <button
+                  onClick={handleReturn}
+                  disabled={borrowLoading}
+                  className="btn-secondary"
+                >
+                  {borrowLoading ? 'Returning…' : 'Return Book'}
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        ) : isReady ? (
+          <div className="card">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">No Active Borrow</h2>
+                <p className="text-gray-600">Borrow a book to read it online.</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
 
         {/* Available Books */}
         <div className="card">
@@ -173,38 +205,28 @@ export default function StudentDashboard() {
               View All
             </a>
           </div>
-          {loading ? (
+          {isReady && loading && books.length === 0 ? (
             <div className="text-center py-8">Loading books...</div>
-          ) : (
+          ) : isReady ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {availableBooks.map(book => (
-                <BookCard key={book.id} book={book} />
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  isBorrowed={borrowedBook && book.id === borrowedBook.id}
+                  onReturn={borrowedBook && book.id === borrowedBook.id ? handleReturn : undefined}
+                  onBorrow={!hasActiveBorrow ? handleBorrow : undefined}
+                  returnLoading={borrowLoading}
+                />
               ))}
             </div>
+          ) : (
+            <div className="text-sm text-gray-600">Loading books...</div>
           )}
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-blue-600">{borrowedBook ? 1 : 0}</div>
-            <div className="text-gray-600">Books Borrowed</div>
-          </div>
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-green-600">
-              {borrowedBook && typeof dueDateInfo.daysRemaining === 'number'
-                ? Math.max(dueDateInfo.daysRemaining, 0)
-                : 0}
-            </div>
-            <div className="text-gray-600">Days Remaining</div>
-          </div>
-          <div className="card text-center">
-            <div className="text-3xl font-bold text-red-600">
-              {borrowedBook && dueDateInfo.isOverdue ? 1 : 0}
-            </div>
-            <div className="text-gray-600">Overdue Books</div>
-          </div>
-        </div>
+
+        {/* Quick Stats removed as requested */}
       </div>
     </DashboardLayout>
   )

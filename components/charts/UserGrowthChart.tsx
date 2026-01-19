@@ -1,6 +1,5 @@
-'use client'
-
-import { memo, useMemo } from 'react'
+"use client";
+import { memo } from "react";
 import {
   LineChart,
   Line,
@@ -9,14 +8,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts'
+} from "recharts";
 
-export type BorrowPoint = {
+export type UserGrowthPoint = {
   name: string;
-  borrows: number;
+  users: number;
 };
 
-function BorrowChart({ data }: { data: BorrowPoint[] }) {
+function UserGrowthChart({ data }: { data: UserGrowthPoint[] }) {
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -25,11 +24,11 @@ function BorrowChart({ data }: { data: BorrowPoint[] }) {
           <XAxis dataKey="name" />
           <YAxis allowDecimals={false} />
           <Tooltip />
-          <Line type="monotone" dataKey="borrows" stroke="#2563eb" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="users" stroke="#16a34a" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-export default memo(BorrowChart);
+export default memo(UserGrowthChart);

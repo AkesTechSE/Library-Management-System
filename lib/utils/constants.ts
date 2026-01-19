@@ -12,7 +12,7 @@ export const BOOK_STATUS = {
 } as const
 
 export const BORROW_DURATION_DAYS = 20
-export const MAX_BOOKS_PER_USER = 1
+export const MAX_BOOKS_PER_USER = 3
 export const LATE_RETURN_MAX_STRIKES = 3
 export const FINE_PER_DAY = 1
 
