@@ -44,7 +44,26 @@ export default function StudentDashboard() {
     }
   }, [activeBorrow])
 
+<<<<<<< HEAD
   // Client-side role-based redirects removed; handled by middleware
+=======
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) {
+      router.push('/')
+      return
+    }
+    if (!role) return
+    if (role === 'admin') {
+      router.push('/dashboard/admin')
+      return
+    }
+    if (role === 'staff') {
+      router.push('/dashboard/staff')
+      return
+    }
+  }, [authLoading, role, router, user])
+>>>>>>> ad8761762d6b071a9fda3037f23dba115bc51026
 
   useEffect(() => {
     if (authLoading) return

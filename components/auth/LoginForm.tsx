@@ -8,6 +8,7 @@ import Cookies from 'js-cookie'
 import type { UserRole } from '@/lib/firebase/firestore'
 import SocialLogin from './SocialLogin'
 import { useRouter } from 'next/navigation'
+import { getUserProfile } from '@/lib/firebase/firestore'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -35,6 +36,7 @@ export default function LoginForm() {
       }
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
+<<<<<<< HEAD
       const user = userCredential.user
 
       // Fetch user role from Firestore, persist it, and redirect accordingly
@@ -55,6 +57,19 @@ export default function LoginForm() {
         if (user) {
           persistRole(user.uid, 'student')
         }
+=======
+      
+      // Get user profile to determine role
+      const profile = await getUserProfile(userCredential.user.uid)
+      const role = profile?.role || 'student'
+      
+      // Navigate based on role
+      if (role === 'admin') {
+        router.push('/dashboard/admin')
+      } else if (role === 'staff') {
+        router.push('/dashboard/staff')
+      } else {
+>>>>>>> ad8761762d6b071a9fda3037f23dba115bc51026
         router.push('/dashboard/student')
       }
     } catch (err: any) {
